@@ -104,7 +104,7 @@ public class Triangle {
         //get the vertex shader's vPosition member
         positionHandle = GLES20.glGetAttribLocation(mProgram, "vPosition");
 
-        //enable openG: to read from FloatBuffer that contains the triangle's vertics' corrds and to understand that there's a triangle there
+        //enable openG: to read from FloatBuffer that contains the triangle's vertices' coords and to understand that there's a triangle there
         GLES20.glEnableVertexAttribArray(positionHandle);
 
         //point to our vertex buffer

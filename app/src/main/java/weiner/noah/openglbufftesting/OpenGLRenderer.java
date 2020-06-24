@@ -62,15 +62,15 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         //reset the current viewport
         GLES20.glViewport(0, 0, width, height);
 
-        //this projection matrix is applied to object coordinates in onDrawFrame()
-        //Matrix.frustumM(projectionMatrix, 0, -ratio, ratio, -1, 1, 3, 7);
-
         //avoid dividing by 0
         if (height==0) {
             height = 1;
         }
 
         float ratio = (float) width/height;
+
+        //this projection matrix is applied to object coordinates in onDrawFrame()
+        Matrix.frustumM(projectionMatrix, 0, -ratio, ratio, -1, 1, 3, 7);
 
         //select the projection matrix
         gl.glMatrixMode(GL10.GL_PROJECTION);
@@ -141,7 +141,6 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         // clear the color buffer (bitmaps) -- clear screen and depth buffer
         gl.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
-
         float[] scratch = new float[16];
 
         //create a rotation transformation for the triangle
@@ -155,7 +154,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         Matrix.multiplyMM(scratch, 0, vPMatrix, 0, rotationMatrix, 0);
 
         //set camera position
-        Matrix.setLookAtM(viewMatrix, 0, 0, 0, -3, 0f, 0f, 0f, 0f, 1.0f, 1.0f);
+        Matrix.setLookAtM(viewMatrix, 0, 0, 0, -7, 0f, 0f, 0f, 0f, 1.0f, 0f);
 
         //calculate projection and view transformation
         Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
@@ -164,16 +163,16 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         gl.glLoadIdentity();
 
         //drawing -- move 5 units INTO the screen is the same as moving the camera 5 units (UNITS, NOT PIXELS) away
-        gl.glTranslatef(0.0f, 0.0f, -5.0f);
+        //gl.glTranslatef(0.0f, 0.0f, -5.0f);   can be done using the Look At matrix
 
         //scale the image by 1/2 (z factor doesn't do anything here)
-        gl.glScalef(0.5f, 0.5f, 0.5f);
+        //gl.glScalef(0.5f, 0.5f, 0.5f);
 
         //draw the triangle
         mTriangle.draw(scratch);
 
         //draw the square
-        //mSquare.draw(gl);
+        mSquare.draw(gl);
 
 
 /*
