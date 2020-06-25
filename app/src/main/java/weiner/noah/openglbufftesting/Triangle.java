@@ -67,7 +67,8 @@ public class Triangle {
         ByteBuffer bb = ByteBuffer.allocateDirect(
                 // (number of coordinate values * 4 bytes per float)
                 triangleCoords.length * 4);
-        // use the device hardware's native byte order
+
+        // use the device hardware's native byte order (C order)
         bb.order(ByteOrder.nativeOrder());
 
         // create a floating point buffer from the ByteBuffer
@@ -116,7 +117,7 @@ public class Triangle {
         //@param what type of data the buffer holds
         //@param the offset in the array used for the vertices (in this case they follow each other, no extra data stored)
         //@param the buffer containing the vertices
-        //prepare the triangle coordinate data
+        //prepare the triangle coordinate data/pass in the position information
         GLES20.glVertexAttribPointer(positionHandle, COORDS_PER_VERTEX, GLES20.GL_FLOAT, false, vertexStride, vertexBuffer);
 
         //GLES20.glClearColor(0.0f, 0.0f,0.0f,0.5f);
@@ -133,7 +134,7 @@ public class Triangle {
         //get shape's transformation matrix
         vPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix");
 
-        //pass projection and view transformation to the shader
+        //pass projection and view transformation to the shader.
         GLES20.glUniformMatrix4fv(vPMatrixHandle, 1, false, mvpMatrix, 0);
 
         //draw the vertices as a triangle strip

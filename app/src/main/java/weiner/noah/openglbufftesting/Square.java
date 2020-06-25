@@ -64,6 +64,26 @@ public class Square {
             1.0f, 0.0f
     };
 
+    /**
+     * This will be used to pass in the texture.
+     */
+    private int mTextureUniformHandle;
+
+    /**
+     * This will be used to pass in model texture coordinate information.
+     */
+    private int mTextureCoordinateHandle;
+
+    /**
+     * Size of the texture coordinate data in elements.
+     */
+    private final int mTextureCoordinateDataSize = 2;
+
+    /**
+     * This is a handle to our texture data.
+     */
+    private int mTextureDataHandle;
+
     //the texture pointer array, where openGL will store names of textures we'll use in our app
     private int[] textures = new int[1];
 
@@ -132,10 +152,24 @@ public class Square {
         GLES20.glEnableVertexAttribArray(positionHandle);
         GLES20.glEnable(GL10.GL_TEXTURE_COORD_ARRAY);
 
+
+
+        //set the face rotation
+        GLES20.glFrontFace(GL10.GL_CW);
+
+        mTextureDataHandle = textures[0];
+        mTextureUniformHandle = GLES20.glGetUniformLocation(mProgram, "u_Texture");
+        mTextureCoordinateHandle = GLES20.glGetAttribLocation(mProgram, "a_TexCoordinate");
+
+
+        GLES20.glEnableVertexAttribArray(mTextureCoordinateHandle);
+        GLES20.glVertexAttribPointer(mTextureCoordinateHandle, mTextureCoordinateDataSize, GLES20.GL_FLOAT, false, 0, textureBuffer);
+
+        //bind the previously generated texture
         GLES20.glBindTexture(GL10.GL_TEXTURE_2D, textures[0]);
 
 
-        //point to our vertex buffer
+        //point to our vertex buffer--tells openGL renderer from where to take the vertices and of what type they are
         //tell OpenGL to use the vertexBuffer to extract the vertices from
         //@param size = 3 represents number of vertices in the buffer
         //@param what type of data the buffer holds
@@ -143,6 +177,7 @@ public class Square {
         //@param the buffer containing the vertices
         //prepare the triangle coordinate data
         GLES20.glVertexAttribPointer(positionHandle, COORDS_PER_VERTEX, GLES20.GL_FLOAT, false, vertexStride, vertexBuffer);
+
 
         //GLES20.glClearColor(0.0f, 0.0f,0.0f,0.5f);
 
@@ -247,16 +282,16 @@ public class Square {
         canvas.drawText("Hello World", 14, 135, textPaint); //WAS x:16, y:112
 
         //generate one texture ptr/names for textures (actually generates an int)
-        gl.glGenTextures(1, textures, 0);
+        GLES20.glGenTextures(1, textures, 0);
 
         //and bind it to our array -- binds texture with newly generated name. Meaning, anything using textures in this subroutine will use the bound texture.
         //Basically activates the texture. If we had had multiple textures and multiples squares for them, would have had to bind (activate) the appropriate textures
         //for each square just before they were used
-        gl.glBindTexture(GL10.GL_TEXTURE_2D, textures[0]);
+        GLES20.glBindTexture(GL10.GL_TEXTURE_2D, textures[0]);
 
         //create nearest filtered texture -- tells openGL what types of filters to use when it needs to shrink or expand texture to cover the square
-        gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_NEAREST);
-        gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_LINEAR);
+        GLES20.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_NEAREST);
+        GLES20.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_LINEAR);
 
         //use Android GLUtils to specify a 2d texture image from our bitmap. Creates the image (texture) internally in its native format based on our bitmap
         GLUtils.texImage2D(GL10.GL_TEXTURE_2D, 0, bitmap, 0);
@@ -267,22 +302,34 @@ public class Square {
 
     private final String vertexShaderCode =
             //this matrix member var provides a hook to manipulate the coords of the objects that use this vertex shader
-            "uniform mat4 uMVPMatrix;" +
-                    "attribute vec4 vPosition;" +
-                    "void main() {" +
+            "uniform mat4 uMVPMatrix;" +   //a constant across all vertices, representing combined model/view/projection matrix. Used to project verts onto screen.
+                    "attribute vec4 vPosition;" + //per-vertex position information we will pass in
+                    "attribute vec4 a_Color;" +  //per-vertex color information we will pass in
+
+                    "attribute vec2 a_TexCoordinate;" +
+                    "varying vec2 v_TexCoordinate;" +
+
+                    "varying vec4 v_Color;" + //this will be passed into fragment shader. Interpolates values across the triangle and passes it on to frag shader.
+                                                //when it gets to the fragment shader, it will hold an interpolated value for each pixel
+
+                    "void main() {" + //the entry point for our vertex shader
                     //the matrix must be included as modifier of gl_Position
                     //NOTE: the uMVPMatrix factor MUST BE FIRST in order for matrix multiplication product to be correct
-                    "gl_Position = uMVPMatrix * vPosition;" +
-                    "}";
+                    "gl_Position = uMVPMatrix * vPosition;" + //gl_Position is special var used to store final position.
+                    "v_TexCoordinate = a_TexCoordinate;" +
+                    "}";                                      //multiply the vertex by the matrix to get the final point in normalized screen coords
 
     //use to access and set the view transformation
     private int vPMatrixHandle;
 
     private final String fragmentShaderCode =
-            "precision mediump float;" +    //how much precision GPU uses when calculating floats
-                    "uniform vec4 vColor;" +
-                    "void main() {" +
-                    "gl_FragColor = vColor;" +
+            "precision mediump float;" +    //how much precision GPU uses when calculating floats. Don't need as high of precision in fragment shader.
+                    "uniform vec4 vColor;" + //this is color from the vertex shader interpolated across triangle per fragment
+                    "uniform sampler2D u_Texture;" +
+                    "varying vec2 v_TexCoordinate;" +
+
+                    "void main() {" +        //entry point to code
+                    "gl_FragColor = vColor * texture2D(u_Texture, v_TexCoordinate);" +   //pass the color directly through the pipeline
                     "}";
 }
 

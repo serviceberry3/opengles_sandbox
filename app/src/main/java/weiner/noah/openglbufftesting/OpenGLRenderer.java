@@ -23,6 +23,12 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL;
 import javax.microedition.khronos.opengles.GL10;
 
+/*
+The model matrix. This matrix is used to place a model somewhere in the “world”. For example, if you have a model of a car and you want it located 1000 meters to the east, you will use the model matrix to do this.
+The view matrix. This matrix represents the camera. If we want to view our car which is 1000 meters to the east, we’ll have to move ourselves 1000 meters to the east as well (another way of thinking about it is that we remain stationary, and the rest of the world moves 1000 meters to the west). We use the view matrix to do this.
+The projection matrix. Since our screens are flat, we need to do a final transformation to “project” our view onto our screen and get that nice 3D perspective. This is what the projection matrix is used for.
+ */
+
 public class OpenGLRenderer implements GLSurfaceView.Renderer {
     Context myContext;
     Activity myActivity;
@@ -37,10 +43,17 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     private long time;
 
     //data for projection and camera view
-    //vPMatrix is abbreviation for "Model View Projection Matrix"
+    //vPMatrix is abbreviation for "Model View Projection Matrix." Use this matrix if we want to just combine the matrices by matrix multiplication
     private final float[] vPMatrix = new float[16];
+
+    //store the projection matrix. This is used to project scene onto a 2D viewport.
     private final float[] projectionMatrix = new float[16];
+
+    //store the view matrix. This can be thought of as our camera. The matrix transforms world space to eye space; it positions things relative to our eye.
     private final float[] viewMatrix = new float[16];
+
+    //store the model matrix. This is used
+    private float[] mModelMatrix = new float[16];
 
     //make a rotation matrix
     private float[] rotationMatrix = new float[16];
@@ -63,7 +76,9 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     // for example, when switching from portrait to landscape. It is also called after the surface has been created.
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
-        //reset the current viewport
+        //Projection matrix work--since only need to reset projection matrix whenever screen we're projecting onto has changed, this is good place
+
+        //reset the current viewport. Set the openGL viewport to same size as the surface
         GLES20.glViewport(0, 0, width, height);
 
         //avoid dividing by 0
@@ -71,10 +86,18 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
             height = 1;
         }
 
+        //create new perspective projection matrix. The height will stay the same while width will vary by aspect ratio.
         float ratio = (float) width/height;
+        float left = -ratio;
+        float right = ratio;
+        float bottom = -1.0f;
+        float top = 1.0f;
+        float near = 3.0f; //could try 1.0f?
+        float far = 7.0f;  //could try 10.0f?
+
 
         //this projection matrix is applied to object coordinates in onDrawFrame()
-        Matrix.frustumM(projectionMatrix, 0, -ratio, ratio, -1, 1, 3, 7);
+        Matrix.frustumM(projectionMatrix, 0, left, right, bottom, top, near, far);
 
         //select the projection matrix
         //gl.glMatrixMode(GL10.GL_PROJECTION);
@@ -95,11 +118,14 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     //This method is called when the surface is first created. It will also be called if we lose our surface context and it is later recreated by the system.
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+        //set background clear color to purple
+        GLES20.glClearColor(0.5f, 0, 0.5f, 1f);
 
+        //insantiate a triangle and a square
         mTriangle = new Triangle();
         mSquare = new Square();
 
-        /*
+
         //load the texture for the square, provide the context to our renderer so we can load up the texture at startup
         mSquare.loadGLTexture(gl, this.myContext);
 
@@ -107,9 +133,9 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 
         gl.glShadeModel(GL10.GL_SMOOTH); //enable smooth shading
 
-        GLES20.glClearColor(0.0f, 0.0f, 0.0f, 0.5f); //black background
+        //GLES20.glClearColor(0.0f, 0.0f, 0.0f, 0.5f); //black background
 
-        GLES20.glClearDepthf(1.0f); //depth buffer setup
+        //GLES20.glClearDepthf(1.0f); //depth buffer setup
 
         GLES20.glEnable(GLES20.GL_DEPTH_TEST); //enables depth testing
 
@@ -117,9 +143,6 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 
         GLES20.glHint(gl.GL_PERSPECTIVE_CORRECTION_HINT, GLES20.GL_NICEST);
 
-         */
-
-        //GLES20.glClearColor(0.5f, 0, 0.5f, 1f);
 
         /*
         bitmap = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_4444);
@@ -160,33 +183,49 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
             }
         });
 
-        float angle = 0.090f * ((int) time);
+        //float angle = 0.090f * ((int) time);
+        float angle = (360.0f / 4000.0f) * ((int) time);
 
-        //set camera position
-        Matrix.setLookAtM(viewMatrix, 0, 0, 0, -7, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
+        //set up the camera
+
+        //Position the eye behind the origin
+        final float eyeX = 0.0f;
+        final float eyeY = 0.0f;
+        final float eyeZ = -7.0f; //WAS 1.5
+
+        //We are looking toward the distance
+        final float lookX = 0.0f;
+        final float lookY = 0.0f;
+        final float lookZ = -1.5f; //WAS -5
+
+        //Set our up vector. This is where our head would be pointing were we holding the camera.
+        final float upX = 0.0f;
+        final float upY = 1.0f;
+        final float upZ = 0.0f;
+
+        //set camera position. NOTE: in Opengl 1, a ModelView matrix is used (a combo of a model and a view matrix). In 2.0, can keep track of these matrices separately.
+        Matrix.setLookAtM(viewMatrix, 0, eyeX, eyeY, eyeZ, lookX, lookY, lookZ, upX, upY, upZ);
+
+        //set model matrix to identity matrix
+        Matrix.setIdentityM(mModelMatrix, 0);
+
+        //set rotation matrix using angle calculated
+        Matrix.setRotateM(rotationMatrix, 0, angle, 0, 0, 1);
+
+        //multiply model matrix (identity matrix) by rotation matrix
+        Matrix.multiplyMM(vPMatrix, 0, mModelMatrix, 0, rotationMatrix, 0);
 
         //calculate projection and view transformation
-        Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
-
-        Matrix.setRotateM(rotationMatrix, 0, angle, 0, 0, 1);
+        Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, vPMatrix, 0);
 
         //combine rotation matrix with the projection and camera view
         //note that vPMatrix factor MUST BE FIRST in order for matrix multiplication product to be correct
-        Matrix.multiplyMM(scratch, 0, vPMatrix, 0, rotationMatrix, 0);
+        Matrix.multiplyMM(scratch, 0, vPMatrix, 0, viewMatrix, 0);
 
-        //reset the Modelview Matrix
-        //gl.glLoadIdentity();
-
-        //drawing -- move 5 units INTO the screen is the same as moving the camera 5 units (UNITS, NOT PIXELS) away
-        //gl.glTranslatef(0.0f, 0.0f, -5.0f);   can be done using the Look At matrix
-
-        //scale the image by 1/2 (z factor doesn't do anything here)
-        //gl.glScalef(0.5f, 0.5f, 0.5f);
-
-        //draw the triangle
+        //draw the triangle with the final matrix
         mTriangle.draw(scratch);
 
-        //draw the square
+        //draw the square with the final matrix
         mSquare.draw(scratch);
 
 /*
@@ -230,11 +269,27 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         // or a fragment shader type (GLES20.GL_FRAGMENT_SHADER)
         int shader = GLES20.glCreateShader(type);
 
-        // add the source code to the shader and compile it
-        GLES20.glShaderSource(shader, shaderCode);
-        GLES20.glCompileShader(shader);
+        if (shader!=0) {
+            // add the source code to the shader and compile it
+            GLES20.glShaderSource(shader, shaderCode);
+
+            //compile the shader
+            GLES20.glCompileShader(shader);
+
+            //get the compilation status
+            final int[] compileStatus = new int[1];
+            GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, compileStatus, 0);
+
+            //if compilation failed, delete the shader
+            if (compileStatus[0] == 0) {
+                GLES20.glDeleteShader(shader);
+                shader = 0;
+            }
+        }
+        if (shader==0) {
+            throw new RuntimeException("Error creating vertex shader.");
+        }
 
         return shader;
-
     }
 }
