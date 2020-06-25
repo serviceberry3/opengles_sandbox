@@ -18,19 +18,22 @@ public class Triangle {
     // number of coordinates per vertex in this array
     static final int COORDS_PER_VERTEX = 3;
 
-    /*
+
     static float[] triangleCoords = {   // in counterclockwise order:
             0.0f, 0.622008459f, 0.0f, // top
             -0.5f, -0.311004243f, 0.0f, // bottom left
             0.5f, -0.311004243f, 0.0f  // bottom right
     };
-     */
 
+/*
     static float[] triangleCoords = {   // in counterclockwise order:
             0.5f, -0.5f, 0.0f, // bottom left
-            1f, -0.5f, 0.0f, // bottom right
-            0.75f, 0.5f, 0.0f  // top
+            0.5f, -0.5f, 0.0f, // bottom right
+            0.5f, 0.5f, 0.0f  // top
     };
+
+ */
+
 
     // Set color with red, green, blue and alpha (opacity) values
     float[] color = {0.63671875f, 0.76953125f, 0.22265625f, 1.0f};
@@ -104,7 +107,7 @@ public class Triangle {
         //get the vertex shader's vPosition member
         positionHandle = GLES20.glGetAttribLocation(mProgram, "vPosition");
 
-        //enable openG: to read from FloatBuffer that contains the triangle's vertices' coords and to understand that there's a triangle there
+        //enable openGL to read from FloatBuffer that contains the triangle's vertices' coords and to understand that there's a triangle there
         GLES20.glEnableVertexAttribArray(positionHandle);
 
         //point to our vertex buffer
@@ -116,10 +119,10 @@ public class Triangle {
         //prepare the triangle coordinate data
         GLES20.glVertexAttribPointer(positionHandle, COORDS_PER_VERTEX, GLES20.GL_FLOAT, false, vertexStride, vertexBuffer);
 
-        GLES20.glClearColor(0.0f, 0.0f,0.0f,0.5f);
+        //GLES20.glClearColor(0.0f, 0.0f,0.0f,0.5f);
 
         // clear the color buffer (bitmaps) -- clear screen and depth buffer
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+       // GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
         //get fragment shader's vColor member
         colorHandle = GLES20.glGetUniformLocation(mProgram, "vColor");
