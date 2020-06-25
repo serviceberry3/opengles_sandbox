@@ -56,12 +56,26 @@ public class Square {
 
     //buffer holding the texture
     private FloatBuffer textureBuffer;
+
+    //S,T (or X,Y) texture coordinate data.
+    //Since images have Y axis pointing downward (vals increase as you move down the image) while OpenGL has Y axis pting upward,
+    //we adjust for that here by flipping the Y axis. Tex coords are same for every face.
+    /*
     private float[] texture = {
             //mapping coordinates for vertices
-            0.0f, 1.0f,
-            0.0f, 0.0f,
-            1.0f, 1.0f,
-            1.0f, 0.0f
+            1f, -1f,
+            1f, 1f,
+            -1f, 1f,
+            -1f, -1f
+    };
+     */
+
+    private float[] texture = {  //note the Y axis is flipped to compensate for fact that in graphics images, Y axis pts in opposite dir of OpenGL's Y axis
+            //mapping coordinates for vertices
+            1f, 0f, //bottom right
+            1f, 1f, //top right
+            0f, 1f, //top left
+            0f, 0f  //bottom right
     };
 
     /**
@@ -148,26 +162,9 @@ public class Square {
         //get the vertex shader's vPosition member
         positionHandle = GLES20.glGetAttribLocation(mProgram, "vPosition");
 
-        //enable openGL to read from FloatBuffer that contains the triangle's vertices' coords and to understand that there's a triangle there
+        //enable openGL to read from FloatBuffer that contains the square's vertices' coords and to understand that there's a square there
         GLES20.glEnableVertexAttribArray(positionHandle);
-        GLES20.glEnable(GL10.GL_TEXTURE_COORD_ARRAY);
-
-
-
-        //set the face rotation
-        GLES20.glFrontFace(GL10.GL_CW);
-
-        mTextureDataHandle = textures[0];
-        mTextureUniformHandle = GLES20.glGetUniformLocation(mProgram, "u_Texture");
-        mTextureCoordinateHandle = GLES20.glGetAttribLocation(mProgram, "a_TexCoordinate");
-
-
-        GLES20.glEnableVertexAttribArray(mTextureCoordinateHandle);
-        GLES20.glVertexAttribPointer(mTextureCoordinateHandle, mTextureCoordinateDataSize, GLES20.GL_FLOAT, false, 0, textureBuffer);
-
-        //bind the previously generated texture
-        GLES20.glBindTexture(GL10.GL_TEXTURE_2D, textures[0]);
-
+       // GLES20.glEnable(GL10.GL_TEXTURE_COORD_ARRAY);
 
         //point to our vertex buffer--tells openGL renderer from where to take the vertices and of what type they are
         //tell OpenGL to use the vertexBuffer to extract the vertices from
@@ -196,6 +193,41 @@ public class Square {
         //pass projection and view transformation to the shader
         GLES20.glUniformMatrix4fv(vPMatrixHandle, 1, false, mvpMatrix, 0);
 
+
+        //set the face rotation
+        GLES20.glFrontFace(GL10.GL_CW);
+
+        mTextureDataHandle = textures[0];
+
+        mTextureUniformHandle = GLES20.glGetUniformLocation(mProgram, "u_Texture");
+
+        //queries our linked shader program for the attribute variable NAME and returns the index of the generic vertex attribute that's bound to that attribute var
+        mTextureCoordinateHandle = GLES20.glGetAttribLocation(mProgram, "a_TexCoordinate");
+
+        GLES20.glEnableVertexAttribArray(mTextureCoordinateHandle);
+
+        //define an array of generic vertex attribute data. Index of the generic vertex attribute to be modified is mTextureCooordinateHandle, and the pointer to first generic vertex attrib in array is textureBuff
+        //specifies location and data format of the array of generic vertex attribs at index index to use when rendering
+        GLES20.glVertexAttribPointer(mTextureCoordinateHandle, mTextureCoordinateDataSize, GLES20.GL_FLOAT, false, 0, textureBuffer);
+
+        /*PROCESS:
+        1. Set active texture unit
+        2. Bind a texture to this unit
+        3. Assign this unit to a texture uniform in the fragment shader
+         */
+
+
+        //set active texture unit to texture unit 0 -- textures need to be bound to texture units before they can be used in rendering
+        //texture unit is what reads in texture and actually passes it through shader so can be displayed on screen
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+
+        //bind the previously generated texture to the first texture unit
+        GLES20.glBindTexture(GL10.GL_TEXTURE_2D, mTextureDataHandle);
+
+        //tell texture uniform sampler to use this texture in shader by binding to texture unit 0
+        //tell openGL we want to bind first texture unit to mTextureUniformHandle, which refers to "u_Texture" in fragment shader
+        GLES20.glUniform1i(mTextureUniformHandle, 0);
+
         //draw the vertices as a triangle strip
         //tells OpenGL to draw triangle strips found in buffer provided, starting with first element. Also "count" is how many vertices there are
         //GLES20.glDrawArrays(GL10.GL_TRIANGLE_STRIP, 0, triangleCoords.length / COORDS_PER_VERTEX);
@@ -206,51 +238,9 @@ public class Square {
 
         //disable vertex array (disable client state before leaving)
         GLES20.glDisableVertexAttribArray(positionHandle);
-
-
-
-
-
-
-
-/*
-        //bind the previously generated texture
-        GLES20.glBindTexture(GL10.GL_TEXTURE_2D, textures[0]);
-
-        //enable OpenGL to use a vertex array for rendering (contains vertices for square).
-        GLES20.glEnableVertexAttribArray(positionHandle);
-        gl.glEnableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
-
-        //set the face rotation
-        gl.glFrontFace(GL10.GL_CW);
-
-        gl.glClearColor(0.0f, 0.0f,0.0f,0.5f);
-
-        // clear the color buffer (bitmaps) -- clear screen and depth buffer
-        //gl.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
-
-        //set the colour for the square
-        gl.glColor4f(0.0f, 1.0f, 0.0f, 0.5f);
-
-        // Point to our vertex buffer -- tells openGL renderer from where to take the vertices and of what type they are
-        gl.glVertexPointer(3, GL10.GL_FLOAT, 0, vertexBuffer);
-        gl.glTexCoordPointer(2, GL10.GL_FLOAT, 0, textureBuffer); //provides OpenGL context with the texture coordinates
-
-
-        // Draw the vertices as triangle strip
-        //tells openGL to draw the primitive specified: a triangle strip. Takes vertices from previously set buffer and follows rules for drawing strips (special order)
-        gl.glDrawArrays(GL10.GL_TRIANGLE_STRIP, 0, vertices.length / 3);
-
-
-        //Disable the client state before leaving -- disables the state of rendering from an array containing vertices
-        gl.glDisableClientState(GL10.GL_VERTEX_ARRAY);
-        gl.glDisableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
-        //these enable and disable are like begin...end statements in a program. We enter subroutines in the OpenGL renderer. Once we entered a routine, we set up vars (vertex buff, color, etc) and execute
-        //other subroutines (drawvertices). Once done, we exit the subroutine. We work in isolation inside the renderer.
-
- */
     }
 
+    //read in a graphics file (or make one) and load it into openGL
     public void loadGLTexture(GL10 gl, Context context) {
         //loading texture -- loads Android bitmap. It's best if the bitmap is square, because that helps a lot with scaling. Make sure bitmaps for textures are squares;
         //if not, make sure width and height are pwrs of 2
@@ -271,7 +261,7 @@ public class Square {
         textPaint = new Paint();
 
         //sets the size of the text to display
-        textPaint.setTextSize(45);
+        textPaint.setTextSize(32);
 
         //set antialiasing bit in the flags, which smooths out edges of what is being drawn
         textPaint.setAntiAlias(true);
@@ -279,7 +269,7 @@ public class Square {
         //set the color of the paint
         textPaint.setARGB(0xff, 0x00, 0x00, 0xdd);
 
-        canvas.drawText("Hello World", 14, 135, textPaint); //WAS x:16, y:112
+        canvas.drawText("NOSHAKE TEST", 14, 135, textPaint); //WAS x:16, y:112
 
         //generate one texture ptr/names for textures (actually generates an int)
         GLES20.glGenTextures(1, textures, 0);
@@ -287,17 +277,26 @@ public class Square {
         //and bind it to our array -- binds texture with newly generated name. Meaning, anything using textures in this subroutine will use the bound texture.
         //Basically activates the texture. If we had had multiple textures and multiples squares for them, would have had to bind (activate) the appropriate textures
         //for each square just before they were used
+        //tells OpenGL that subsequent OpenGL calls should affect this texture
         GLES20.glBindTexture(GL10.GL_TEXTURE_2D, textures[0]);
 
         //create nearest filtered texture -- tells openGL what types of filters to use when it needs to shrink or expand texture to cover the square
-        GLES20.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_NEAREST);
-        GLES20.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_LINEAR);
+        GLES20.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_NEAREST); //GL_NEAREST is quickest and roughest form of filtering. Picks nearest textel at each pt in screen
+        GLES20.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_NEAREST);
+
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
 
         //use Android GLUtils to specify a 2d texture image from our bitmap. Creates the image (texture) internally in its native format based on our bitmap
+        //Load the bitmap into the bound texture
+        //@param: target. Wnat a regular 2D bitmap
+        //@param: level. Specifies image to use at each level. Not using mip-mapping here so put 0 (default lvl)
+        //@param: bitmap
+        //@param: border. Not using it.
         GLUtils.texImage2D(GL10.GL_TEXTURE_2D, 0, bitmap, 0);
 
         //clean up -- free up memory used by original bitmap
-        bitmap.recycle();
+        bitmap.recycle(); //bitmaps contain data that resides in native memory, takes a few cycles to be garbage collected if you don't do it
     }
 
     private final String vertexShaderCode =
@@ -306,8 +305,9 @@ public class Square {
                     "attribute vec4 vPosition;" + //per-vertex position information we will pass in
                     "attribute vec4 a_Color;" +  //per-vertex color information we will pass in
 
-                    "attribute vec2 a_TexCoordinate;" +
-                    "varying vec2 v_TexCoordinate;" +
+                    "attribute vec2 a_TexCoordinate;" +  //per-vertex texture coordinate information we'll pass in (array with two components that'll take in tex coord info as input)
+                                                            //this will be per-vertex, like the position, color, and normal data
+                    "varying vec2 v_TexCoordinate;" +   //this will be passed thru fragment shader via linear interpolation across the surface of the triangle
 
                     "varying vec4 v_Color;" + //this will be passed into fragment shader. Interpolates values across the triangle and passes it on to frag shader.
                                                 //when it gets to the fragment shader, it will hold an interpolated value for each pixel
@@ -316,7 +316,7 @@ public class Square {
                     //the matrix must be included as modifier of gl_Position
                     //NOTE: the uMVPMatrix factor MUST BE FIRST in order for matrix multiplication product to be correct
                     "gl_Position = uMVPMatrix * vPosition;" + //gl_Position is special var used to store final position.
-                    "v_TexCoordinate = a_TexCoordinate;" +
+                    "v_TexCoordinate = a_TexCoordinate;" +    //pass through the texture coordinate
                     "}";                                      //multiply the vertex by the matrix to get the final point in normalized screen coords
 
     //use to access and set the view transformation
@@ -325,12 +325,13 @@ public class Square {
     private final String fragmentShaderCode =
             "precision mediump float;" +    //how much precision GPU uses when calculating floats. Don't need as high of precision in fragment shader.
                     "uniform vec4 vColor;" + //this is color from the vertex shader interpolated across triangle per fragment
-                    "uniform sampler2D u_Texture;" +
-                    "varying vec2 v_TexCoordinate;" +
+                    "uniform sampler2D u_Texture;" +  //the input texture--reps actual texture data (as opposed to texture coords)
+                    "varying vec2 v_TexCoordinate;" + //interpolated texture coordinate per fragment. Passed in interpolated texture coords from vertex shader
 
                     "void main() {" +        //entry point to code
                     "gl_FragColor = vColor * texture2D(u_Texture, v_TexCoordinate);" +   //pass the color directly through the pipeline
-                    "}";
+                    "}";                                                                    //multiply the color by texture val to get final output color
+                                            //call texture2D(texture, textureCoordinate) to read in val of texture at current coordinate
 }
 
 
