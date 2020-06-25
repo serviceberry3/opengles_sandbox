@@ -31,15 +31,6 @@ public class Square {
     // number of coordinates per vertex in this array
     static final int COORDS_PER_VERTEX = 3;
 
-    /*
-    private float vertices[] = {
-                    -1f, -0.5f,  0.0f,        // V1 - bottom left
-                    -1f,  0.5f,  0.0f,        // V2 - top left
-                    0f, -0.5f,  0.0f,        // V3 - bottom right
-                    0f,  0.5f,  0.0f         // V4 - top right
-    };
-     */
-
     private float vertices[] = {
             -0.5f, 0.5f, 0.0f,   //top left
             -0.5f, -0.5f, 0.0f,  //bottom left
@@ -60,16 +51,6 @@ public class Square {
     //S,T (or X,Y) texture coordinate data.
     //Since images have Y axis pointing downward (vals increase as you move down the image) while OpenGL has Y axis pting upward,
     //we adjust for that here by flipping the Y axis. Tex coords are same for every face.
-    /*
-    private float[] texture = {
-            //mapping coordinates for vertices
-            1f, -1f,
-            1f, 1f,
-            -1f, 1f,
-            -1f, -1f
-    };
-     */
-
     private float[] texture = {  //note the Y axis is flipped to compensate for fact that in graphics images, Y axis pts in opposite dir of OpenGL's Y axis
             //mapping coordinates for vertices
             1f, 0f, //bottom right
@@ -78,24 +59,16 @@ public class Square {
             0f, 0f  //bottom right
     };
 
-    /**
-     * This will be used to pass in the texture.
-     */
+    //used to pass in the texture
     private int mTextureUniformHandle;
 
-    /**
-     * This will be used to pass in model texture coordinate information.
-     */
+    //used to pass in model texture coordinate info
     private int mTextureCoordinateHandle;
 
-    /**
-     * Size of the texture coordinate data in elements.
-     */
+    //size of texture coordinate data (# elements per coord = just x and y)
     private final int mTextureCoordinateDataSize = 2;
 
-    /**
-     * This is a handle to our texture data.
-     */
+    //handle to texture data in shader program
     private int mTextureDataHandle;
 
     //the texture pointer array, where openGL will store names of textures we'll use in our app
@@ -210,12 +183,12 @@ public class Square {
         //specifies location and data format of the array of generic vertex attribs at index index to use when rendering
         GLES20.glVertexAttribPointer(mTextureCoordinateHandle, mTextureCoordinateDataSize, GLES20.GL_FLOAT, false, 0, textureBuffer);
 
+
         /*PROCESS:
         1. Set active texture unit
         2. Bind a texture to this unit
         3. Assign this unit to a texture uniform in the fragment shader
          */
-
 
         //set active texture unit to texture unit 0 -- textures need to be bound to texture units before they can be used in rendering
         //texture unit is what reads in texture and actually passes it through shader so can be displayed on screen

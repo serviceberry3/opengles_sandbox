@@ -98,21 +98,6 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 
         //this projection matrix is applied to object coordinates in onDrawFrame()
         Matrix.frustumM(projectionMatrix, 0, left, right, bottom, top, near, far);
-
-        //select the projection matrix
-        //gl.glMatrixMode(GL10.GL_PROJECTION);
-
-        //reset the projection matrix
-        //gl.glLoadIdentity();
-
-        //calculate aspect ratio of the window
-        //GLU.gluPerspective(gl, 45.0f, ratio, 0.1f, 100.0f);
-
-        //select the modelview matrix
-        //gl.glMatrixMode(GL10.GL_MODELVIEW);
-
-        //reset modelview matrix
-        //gl.glLoadIdentity();
     }
 
     //This method is called when the surface is first created. It will also be called if we lose our surface context and it is later recreated by the system.
@@ -142,27 +127,6 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         GLES20.glDepthFunc(GLES20.GL_LEQUAL); //the type of depth testing to do
 
         GLES20.glHint(gl.GL_PERSPECTIVE_CORRECTION_HINT, GLES20.GL_NICEST);
-
-
-        /*
-        bitmap = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_4444);
-
-        canvas = new Canvas(bitmap);
-        bitmap.eraseColor(0);
-
-        background = myContext.getResources().getDrawable(R.drawable.ic_launcher_background);
-
-        background.setBounds(0, 0, 256, 256);
-
-        background.draw(canvas);
-
-        textPaint = new Paint();
-        textPaint.setTextSize(32);
-        textPaint.setAntiAlias(true);
-        textPaint.setARGB(0xff, 0x00, 0x00, 0x00);
-
-        canvas.drawText("Hello World", 16, 112, textPaint);
-        */
     }
 
     //This is called whenever it’s time to draw a new frame.
@@ -227,41 +191,6 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 
         //draw the square with the final matrix
         mSquare.draw(scratch);
-
-/*
-        // generate one texture pointer...
-        gl.glGenTextures(1, textures, 0);
-        //...and bind it to our array
-        gl.glBindTexture(GL10.GL_TEXTURE_2D, textures[0]);
-
-        // create Nearest Filtered Texture
-        gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_NEAREST);
-        gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_LINEAR);
-
-        // different possible texture parameters, e.g. GL10.GL_CLAMP_TO_EDGE
-        gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_WRAP_S, GL10.GL_REPEAT);
-        gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_WRAP_T, GL10.GL_REPEAT);
-
-        // use the Android GLUtils to specify a two-dimensional texture image from our bitmap
-        GLUtils.texImage2D(GL10.GL_TEXTURE_2D, 0, bitmap, 0);
-
-
-
-        float textureCoordinates[] = {0.0f, 1.0f,
-                1.0f, 1.0f,
-                0.0f, 0.0f,
-                1.0f, 0.0f };
-
-        ByteBuffer byteBuf = ByteBuffer.allocateDirect(textures.length * 4);
-        byteBuf.order(ByteOrder.nativeOrder());
-        FloatBuffer textureBuffer = byteBuf.asFloatBuffer();
-        textureBuffer.put(textureCoordinates);
-        textureBuffer.position(0);
-         */
-
-
-        // clean up
-        //bitmap.recycle();
     }
 
     public static int loadShader(int type, String shaderCode) {
