@@ -24,7 +24,7 @@ public class Triangle {
             -0.5f, -0.311004243f, 0.0f, // bottom left
             0.5f, -0.311004243f, 0.0f  // bottom right
     };
-    
+
     // Set color with red, green, blue and alpha (opacity) values
     float[] color = {0.63671875f, 0.76953125f, 0.22265625f, 1.0f};
 

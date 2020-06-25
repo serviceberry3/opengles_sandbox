@@ -32,10 +32,10 @@ public class Square {
     static final int COORDS_PER_VERTEX = 3;
 
     private float vertices[] = {
-            -0.5f, 0.5f, 0.0f,   //top left
-            -0.5f, -0.5f, 0.0f,  //bottom left
-            0.5f, -0.5f, 0.0f,   //bottom right
-            0.5f, 0.5f, 0.0f   //top right
+            -0.3f, 0.3f, 0.0f,   //top left
+            -0.3f, -0.3f, 0.0f,  //bottom left
+            0.3f, -0.3f, 0.0f,   //bottom right
+            0.3f, 0.3f, 0.0f   //top right
     };
 
     private final int vertexCount = vertices.length / COORDS_PER_VERTEX;
@@ -71,11 +71,16 @@ public class Square {
     //handle to texture data in shader program
     private int mTextureDataHandle;
 
+    //handle to location of alpha var in shader
+    private int alphaLocation;
+
     //the texture pointer array, where openGL will store names of textures we'll use in our app
     private int[] textures = new int[1];
 
     // Set color with red, green, blue and alpha (opacity) values
-    float[] color = {0.63671875f, 0.76953125f, 0.22265625f, 1.0f};
+    //float[] color = {0.63671875f, 0.76953125f, 0.22265625f, 1.0f};
+
+    float[] color = {0.5f, 0.7f, 0.3f, 1.0f};
 
     public Square() {
         //load the vertex shader
@@ -137,7 +142,7 @@ public class Square {
 
         //enable openGL to read from FloatBuffer that contains the square's vertices' coords and to understand that there's a square there
         GLES20.glEnableVertexAttribArray(positionHandle);
-       // GLES20.glEnable(GL10.GL_TEXTURE_COORD_ARRAY);
+        //GLES20.glEnable(GL10.GL_TEXTURE_COORD_ARRAY);
 
         //point to our vertex buffer--tells openGL renderer from where to take the vertices and of what type they are
         //tell OpenGL to use the vertexBuffer to extract the vertices from
@@ -159,6 +164,17 @@ public class Square {
 
         //set color for triangle -- values of RGB floats are between 0 and 1 inclusif
         GLES20.glUniform4fv(colorHandle, 1, color, 0);
+
+        GLES20.glDisable(GLES20.GL_CULL_FACE);
+
+        //enable alpha blending
+        GLES20.glEnable (GLES20.GL_BLEND);
+        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+
+        //get alpha variable location
+        alphaLocation = GLES20.glGetUniformLocation(mProgram, "alpha");
+        //set alpha to 0.5
+        GLES20.glUniform1f(alphaLocation, 1f);
 
         //get shape's transformation matrix
         vPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix");
@@ -296,13 +312,14 @@ public class Square {
     private int vPMatrixHandle;
 
     private final String fragmentShaderCode =
+            "uniform float alpha;" +     //alpha constant to control transparency
             "precision mediump float;" +    //how much precision GPU uses when calculating floats. Don't need as high of precision in fragment shader.
                     "uniform vec4 vColor;" + //this is color from the vertex shader interpolated across triangle per fragment
                     "uniform sampler2D u_Texture;" +  //the input texture--reps actual texture data (as opposed to texture coords)
                     "varying vec2 v_TexCoordinate;" + //interpolated texture coordinate per fragment. Passed in interpolated texture coords from vertex shader
 
                     "void main() {" +        //entry point to code
-                    "gl_FragColor = vColor * texture2D(u_Texture, v_TexCoordinate);" +   //pass the color directly through the pipeline
+                    "gl_FragColor = vColor * alpha * texture2D(u_Texture, v_TexCoordinate);" +   //pass the color directly through the pipeline
                     "}";                                                                    //multiply the color by texture val to get final output color
                                             //call texture2D(texture, textureCoordinate) to read in val of texture at current coordinate
 }

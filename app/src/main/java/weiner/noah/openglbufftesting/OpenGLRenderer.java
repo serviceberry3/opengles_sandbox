@@ -12,6 +12,7 @@ import android.opengl.GLU;
 import android.opengl.GLUtils;
 import android.opengl.Matrix;
 import android.os.SystemClock;
+import android.util.Log;
 import android.widget.Toast;
 
 import java.nio.ByteBuffer;
@@ -42,6 +43,8 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 
     private long time;
 
+    private int[] frameBuffers = new int[1];
+
     //data for projection and camera view
     //vPMatrix is abbreviation for "Model View Projection Matrix." Use this matrix if we want to just combine the matrices by matrix multiplication
     private final float[] vPMatrix = new float[16];
@@ -57,6 +60,10 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 
     //make a rotation matrix
     private float[] rotationMatrix = new float[16];
+
+    private int[] textureBuffer = new int[1];
+
+    private int w, h;
 
 
     //text render to texture vars
@@ -76,6 +83,8 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     // for example, when switching from portrait to landscape. It is also called after the surface has been created.
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
+        w = width;
+        h = height;
         //Projection matrix work--since only need to reset projection matrix whenever screen we're projecting onto has changed, this is good place
 
         //reset the current viewport. Set the openGL viewport to same size as the surface
@@ -103,6 +112,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     //This method is called when the surface is first created. It will also be called if we lose our surface context and it is later recreated by the system.
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+        generateGiantFrameBuffer();
         //set background clear color to purple
         GLES20.glClearColor(0.5f, 0, 0.5f, 1f);
 
@@ -187,7 +197,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         Matrix.multiplyMM(scratch, 0, vPMatrix, 0, viewMatrix, 0);
 
         //draw the triangle with the final matrix
-        mTriangle.draw(scratch);
+        //mTriangle.draw(scratch);
 
         //draw the square with the final matrix
         mSquare.draw(scratch);
@@ -220,5 +230,41 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         }
 
         return shader;
+    }
+
+    public void generateGiantFrameBuffer() {
+        // Create a frame buffer
+        GLES20.glGenFramebuffers(1, frameBuffers, 0);
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, frameBuffers[0]);
+
+        // Generate a texture to hold the colour buffer
+        GLES20.glGenTextures(1, textureBuffer, 0);
+
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureBuffer[0]);
+
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
+
+        // Width and height do not have to be a power of two
+        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, w, h, 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null);
+
+        //Log.d("DBUG", "MARK");
+        GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, textureBuffer[0], 0);
+
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+
+        // Check FBO status
+        int status = GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER);
+
+        if (status == GLES20.GL_FRAMEBUFFER_COMPLETE)
+        {
+            Log.d("DBUG", "FBO Success");
+        }
+        else {
+            Log.d("DBUG", String.format("Status of FBO is %x", status));
+        }
     }
 }
