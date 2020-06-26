@@ -2,7 +2,6 @@ package weiner.noah.openglbufftesting;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
@@ -14,10 +13,9 @@ import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
 
-import javax.microedition.khronos.opengles.GL;
 import javax.microedition.khronos.opengles.GL10;
 
-public class Square {
+public class ScreenShader {
     private Bitmap bitmap;
     private Canvas canvas;
     private Paint textPaint;
@@ -32,10 +30,10 @@ public class Square {
     static final int COORDS_PER_VERTEX = 3;
 
     private float vertices[] = {
-            -0.3f, 0.3f, 0.0f,   //top left
-            -0.3f, -0.3f, 0.0f,  //bottom left
-            0.3f, -0.3f, 0.0f,   //bottom right
-            0.3f, 0.3f, 0.0f   //top right
+            -1f, 1f, 0.0f,   //top left
+            -1f, -1f, 0.0f,  //bottom left
+            1f, -1f, 0.0f,   //bottom right
+            1f, 1f, 0.0f   //top right
     };
 
     private final int vertexCount = vertices.length / COORDS_PER_VERTEX;
@@ -80,9 +78,9 @@ public class Square {
     // Set color with red, green, blue and alpha (opacity) values
     //float[] color = {0.63671875f, 0.76953125f, 0.22265625f, 1.0f};
 
-    float[] color = {0.5f, 0.7f, 0.3f, 1.0f};
+    float[] color = {0.7f, 0.3f, 0.3f, 1.0f};
 
-    public Square() {
+    public ScreenShader() {
         //load the vertex shader
         int vertexShader = OpenGLRenderer.loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode);
 
@@ -142,7 +140,6 @@ public class Square {
 
         //enable openGL to read from FloatBuffer that contains the square's vertices' coords and to understand that there's a square there
         GLES20.glEnableVertexAttribArray(positionHandle);
-        //GLES20.glEnable(GL10.GL_TEXTURE_COORD_ARRAY);
 
         //point to our vertex buffer--tells openGL renderer from where to take the vertices and of what type they are
         //tell OpenGL to use the vertexBuffer to extract the vertices from
@@ -157,7 +154,7 @@ public class Square {
         //GLES20.glClearColor(0.0f, 0.0f,0.0f,0.5f);
 
         //clear the color buffer (bitmaps) -- clear screen and depth buffer
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+        //GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
         //get fragment shader's vColor member
         colorHandle = GLES20.glGetUniformLocation(mProgram, "vColor");
@@ -179,14 +176,13 @@ public class Square {
         //get shape's transformation matrix
         vPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix");
 
-        //pass projection and view transformation to the shader
+        //pass projection and view transformation to the shader's uMVPMatrix variable
         GLES20.glUniformMatrix4fv(vPMatrixHandle, 1, false, mvpMatrix, 0);
-
 
         //set the face rotation
         GLES20.glFrontFace(GL10.GL_CW);
 
-        mTextureDataHandle = textures[0];
+        mTextureDataHandle = OpenGLRenderer.textureBuffer[0];
 
         mTextureUniformHandle = GLES20.glGetUniformLocation(mProgram, "u_Texture");
 
@@ -219,7 +215,7 @@ public class Square {
 
         //draw the vertices as a triangle strip
         //tells OpenGL to draw triangle strips found in buffer provided, starting with first element. Also "count" is how many vertices there are
-        //GLES20.glDrawArrays(GL10.GL_TRIANGLE_STRIP, 0, triangleCoords.length / COORDS_PER_VERTEX);
+        //GLES20.glDrawArrays(GL10.GL_TRIANGLE_STRIP, 0, vertices.length / COORDS_PER_VERTEX);
 
         //draw triangle -- google version
         //GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, vertexCount);
@@ -295,16 +291,16 @@ public class Square {
                     "attribute vec4 a_Color;" +  //per-vertex color information we will pass in
 
                     "attribute vec2 a_TexCoordinate;" +  //per-vertex texture coordinate information we'll pass in (array with two components that'll take in tex coord info as input)
-                                                            //this will be per-vertex, like the position, color, and normal data
+                    //this will be per-vertex, like the position, color, and normal data
                     "varying vec2 v_TexCoordinate;" +   //this will be passed thru fragment shader via linear interpolation across the surface of the triangle
 
                     "varying vec4 v_Color;" + //this will be passed into fragment shader. Interpolates values across the triangle and passes it on to frag shader.
-                                                //when it gets to the fragment shader, it will hold an interpolated value for each pixel
+                    //when it gets to the fragment shader, it will hold an interpolated value for each pixel
 
                     "void main() {" + //the entry point for our vertex shader
                     //the matrix must be included as modifier of gl_Position
                     //NOTE: the uMVPMatrix factor MUST BE FIRST in order for matrix multiplication product to be correct
-                    "gl_Position = uMVPMatrix * vPosition;" + //gl_Position is special var used to store final position.
+                    "gl_Position = /*uMVPMatrix * */ vPosition;" + //gl_Position is special var used to store final position.
                     "v_TexCoordinate = a_TexCoordinate;" +    //pass through the texture coordinate
                     "}";                                      //multiply the vertex by the matrix to get the final point in normalized screen coords
 
@@ -313,7 +309,7 @@ public class Square {
 
     private final String fragmentShaderCode =
             "uniform float alpha;" +     //alpha constant to control transparency
-            "precision mediump float;" +    //how much precision GPU uses when calculating floats. Don't need as high of precision in fragment shader.
+                    "precision mediump float;" +    //how much precision GPU uses when calculating floats. Don't need as high of precision in fragment shader.
                     "uniform vec4 vColor;" + //this is color from the vertex shader interpolated across triangle per fragment
                     "uniform sampler2D u_Texture;" +  //the input texture--reps actual texture data (as opposed to texture coords)
                     "varying vec2 v_TexCoordinate;" + //interpolated texture coordinate per fragment. Passed in interpolated texture coords from vertex shader
@@ -321,7 +317,5 @@ public class Square {
                     "void main() {" +        //entry point to code
                     "gl_FragColor = vColor * alpha * texture2D(u_Texture, v_TexCoordinate);" +   //pass the color directly through the pipeline
                     "}";                                                                    //multiply the color by texture val to get final output color
-                                            //call texture2D(texture, textureCoordinate) to read in val of texture at current coordinate
+    //call texture2D(texture, textureCoordinate) to read in val of texture at current coordinate
 }
-
-

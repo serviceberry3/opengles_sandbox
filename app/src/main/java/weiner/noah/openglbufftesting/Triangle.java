@@ -113,7 +113,7 @@ public class Triangle {
         //GLES20.glClearColor(0.0f, 0.0f,0.0f,0.5f);
 
         // clear the color buffer (bitmaps) -- clear screen and depth buffer
-       // GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+       GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
         //get fragment shader's vColor member
         colorHandle = GLES20.glGetUniformLocation(mProgram, "vColor");

@@ -12,6 +12,7 @@ import android.opengl.GLU;
 import android.opengl.GLUtils;
 import android.opengl.Matrix;
 import android.os.SystemClock;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -40,6 +41,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     private Drawable background;
     private Triangle mTriangle;
     private Square mSquare;
+    private ScreenShader mScreenShader;
 
     private long time;
 
@@ -61,9 +63,11 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     //make a rotation matrix
     private float[] rotationMatrix = new float[16];
 
-    private int[] textureBuffer = new int[1];
+    public static int[] textureBuffer = new int[1];
 
     private int w, h;
+
+    float[] scratch = new float[16];
 
 
     //text render to texture vars
@@ -112,17 +116,24 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     //This method is called when the surface is first created. It will also be called if we lose our surface context and it is later recreated by the system.
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-        generateGiantFrameBuffer();
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        myActivity.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        h = displayMetrics.heightPixels;
+        w = displayMetrics.widthPixels;
+
         //set background clear color to purple
         GLES20.glClearColor(0.5f, 0, 0.5f, 1f);
 
         //insantiate a triangle and a square
         mTriangle = new Triangle();
         mSquare = new Square();
+        mScreenShader = new ScreenShader();
 
 
         //load the texture for the square, provide the context to our renderer so we can load up the texture at startup
         mSquare.loadGLTexture(gl, this.myContext);
+
+        //mScreenShader.loadGLTexture(gl, this.myContext);
 
         GLES20.glEnable(GLES20.GL_TEXTURE_2D); //enable texture mapping (NEW)
 
@@ -137,6 +148,8 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         GLES20.glDepthFunc(GLES20.GL_LEQUAL); //the type of depth testing to do
 
         GLES20.glHint(gl.GL_PERSPECTIVE_CORRECTION_HINT, GLES20.GL_NICEST);
+
+        generateGiantFrameBuffer();
     }
 
     //This is called whenever it’s time to draw a new frame.
@@ -145,7 +158,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         // clear the color buffer (bitmaps) -- clear screen and depth buffer
         gl.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
-        float[] scratch = new float[16];
+
 
         //create a rotation transformation for the triangle
         time = SystemClock.uptimeMillis() % 4000L;
@@ -196,11 +209,24 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         //note that vPMatrix factor MUST BE FIRST in order for matrix multiplication product to be correct
         Matrix.multiplyMM(scratch, 0, vPMatrix, 0, viewMatrix, 0);
 
+        //load up the offscreen FBO
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, frameBuffers[0]);
+
+        GLES20.glViewport(0,0,1080,2236); // Render on the whole framebuffer, complete from the lower left corner to the upper right
+
         //draw the triangle with the final matrix
         //mTriangle.draw(scratch);
 
-        //draw the square with the final matrix
         mSquare.draw(scratch);
+
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+
+        mScreenShader.draw(scratch);
+
+        //mTriangle.draw(scratch);
+
+        //draw the square with the final matrix
+        //mSquare.draw(scratch);
     }
 
     public static int loadShader(int type, String shaderCode) {
@@ -234,13 +260,16 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 
     public void generateGiantFrameBuffer() {
         // Create a frame buffer
+        // The framebuffer, which regroups 0, 1, or more textures, and 0 or 1 depth buffer.
         GLES20.glGenFramebuffers(1, frameBuffers, 0);
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, frameBuffers[0]);
 
         // Generate a texture to hold the colour buffer
+        //the texture we're going to render to
         GLES20.glGenTextures(1, textureBuffer, 0);
 
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        // "Bind" the newly created texture : all future texture functions will modify this texture
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureBuffer[0]);
 
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
@@ -249,11 +278,17 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
 
         // Width and height do not have to be a power of two
+        //// Give an empty image to OpenGL ( the last "0" )
         GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, w, h, 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null);
 
-        //Log.d("DBUG", "MARK");
+        Log.d("DBUG", String.format("Width is %d, height is %d", w, h));
+
+        // Set textureBuffer[0] FBO as our color attachment #0
         GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, textureBuffer[0], 0);
 
+        //mTriangle.draw(scratch);
+
+        //unbind current framebuffer
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
 
         // Check FBO status
@@ -264,7 +299,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
             Log.d("DBUG", "FBO Success");
         }
         else {
-            Log.d("DBUG", String.format("Status of FBO is %x", status));
+            Log.d("DBUG", String.format("FAIL, status of FBO is %d", status));
         }
     }
 }
