@@ -43,6 +43,8 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     private Square mSquare;
     private ScreenShader mScreenShader;
 
+    private int factor = 1;
+
     private long time;
 
     private int[] frameBuffers = new int[1];
@@ -158,8 +160,6 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         // clear the color buffer (bitmaps) -- clear screen and depth buffer
         gl.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
-
-
         //create a rotation transformation for the triangle
         time = SystemClock.uptimeMillis() % 4000L;
 
@@ -172,6 +172,9 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 
         //float angle = 0.090f * ((int) time);
         float angle = (360.0f / 4000.0f) * ((int) time);
+
+        float posTrans = (time/4000f) * 0.1f;
+
 
         //set up the camera
 
@@ -195,6 +198,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 
         //set model matrix to identity matrix
         Matrix.setIdentityM(mModelMatrix, 0);
+        Matrix.translateM(mModelMatrix, 0, 0.9f - posTrans, 1.8f, 0); // translation to the left
 
         //set rotation matrix using angle calculated
         Matrix.setRotateM(rotationMatrix, 0, angle, 0, 0, 1);
@@ -212,14 +216,18 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         //load up the offscreen FBO
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, frameBuffers[0]);
 
-        GLES20.glViewport(0,0,1080,2236); // Render on the whole framebuffer, complete from the lower left corner to the upper right
+        GLES20.glViewport(0,0,1080 * 4,2236 * 4); // Render on the whole framebuffer, complete from the lower left corner to the upper right
 
         //draw the triangle with the final matrix
         //mTriangle.draw(scratch);
 
         mSquare.draw(scratch);
 
+        //bind the actual screen
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+
+        //scale the giant rendering so it fits in the screen window
+        GLES20.glViewport(0,0,1080*4,2236*4);
 
         mScreenShader.draw(scratch);
 
@@ -279,7 +287,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 
         // Width and height do not have to be a power of two
         //// Give an empty image to OpenGL ( the last "0" )
-        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, w, h, 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null);
+        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, w*4, h*4, 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null);
 
         Log.d("DBUG", String.format("Width is %d, height is %d", w, h));
 
