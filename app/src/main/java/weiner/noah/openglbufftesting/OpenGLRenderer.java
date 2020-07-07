@@ -175,13 +175,12 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 
         float posTrans = (time/4000f) * 0.1f;
 
-
         //set up the camera
 
         //Position the eye behind the origin
         final float eyeX = 0.0f;
-        final float eyeY = 0.0f;
-        final float eyeZ = -7.0f; //WAS 1.5
+        final float eyeY = 0f;
+        final float eyeZ = -7f; //WAS 1.5
 
         //We are looking toward the distance
         final float lookX = 0.0f;
@@ -201,13 +200,13 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         Matrix.translateM(mModelMatrix, 0, 0.9f - posTrans, 1.8f, 0); // translation to the left
 
         //set rotation matrix using angle calculated
-        Matrix.setRotateM(rotationMatrix, 0, angle, 0, 0, 1);
+        Matrix.setRotateM(rotationMatrix, 0, 180, 0, 0, 1); //was angle instead of 180
 
         //multiply model matrix (identity matrix) by rotation matrix
         Matrix.multiplyMM(vPMatrix, 0, mModelMatrix, 0, rotationMatrix, 0);
 
         //calculate projection and view transformation
-        Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, vPMatrix, 0);
+        Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, vPMatrix, 0); //2nd to last was vPMatrix
 
         //combine rotation matrix with the projection and camera view
         //note that vPMatrix factor MUST BE FIRST in order for matrix multiplication product to be correct
@@ -226,8 +225,8 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         //bind the actual screen
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
 
-        //scale the giant rendering so it fits in the screen window
-        GLES20.glViewport(0,0,1080*4,2236*4);
+        //open up the entire giant buffer
+        GLES20.glViewport(0,0,1080 * 4,2236 * 4);
 
         mScreenShader.draw(scratch);
 
